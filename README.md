@@ -12,8 +12,8 @@ unlocked by a master password at startup.
 | M0 — Project skeleton + CLI subcommands | ✅ Done |
 | M1 — Secret management (Argon2id + AES-GCM) | ✅ Done |
 | M2 — Bybit adapter | ✅ Done |
-| M3 — Zoomex adapter (reuses Bybit) | ⏳ Next |
-| M4 — Binance / OKX / Bitget / Gate adapters | |
+| M3 — Zoomex adapter (reuses Bybit) | ✅ Done |
+| M4 — Binance / OKX / Bitget / Gate adapters | ⏳ Next |
 | M5 — TUI Positions tab | |
 | M6 — Close-position flow with confirmation | |
 | M7 — History tab | |

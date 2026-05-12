@@ -216,3 +216,7 @@ For each of binance/okx/bitget/gate:
 - Bybit V5：HMAC-SHA256 on `ts + apiKey + recvWindow + (query OR body)`；time sync via `/v5/market/time`；retCode 10002 → resync + retry once。
 - `NewWithBaseURL(creds, rt, baseURL, pathPrefix)` 與 `SetName(name)` 預埋給 M3 Zoomex 用。
 - 簽章 fixture 預期值用 Python `hmac.new(secret, payload, hashlib.sha256).hexdigest()` 獨立驗算。
+
+### M3 (Zoomex)
+- Composition 包 `bybit.Client`：`baseURL=https://openapi.zoomex.com`、`pathPrefix=/cloud/trade/v3`、`SetName("zoomex")`。
+- History 路徑為 `/position/close-pnl`（非 `closed-pnl`），透過 `HistoryAtPath` 覆寫。

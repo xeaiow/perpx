@@ -22,6 +22,7 @@ import (
 
 	// 啟用 adapter 註冊
 	_ "github.com/yourname/poscli/internal/exchange/bybit"
+	_ "github.com/yourname/poscli/internal/exchange/zoomex"
 )
 
 var (
