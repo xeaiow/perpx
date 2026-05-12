@@ -23,6 +23,7 @@ type Position struct {
 	Symbol        string       // 標準化 symbol，例如 "BTCUSDT"。跨所比對用
 	RawSymbol     string       // 各交易所原始 symbol，平倉時用這個（OKX 是 "BTC-USDT-SWAP" 等）
 	Side          PositionSide
+	RawSide       string       // 各交易所原樣的 side 字串（OKX: "long" / "short" / "net"；其他家可留空）；close 用
 	Size          float64      // 交易所原樣回的數量；多數家是 coin 顆數，Gate 是 contracts
 	CoinSize      float64      // 統一單位的 coin 顆數；UI 用這個顯示「實際幣量」
 	EntryPrice    float64
@@ -54,6 +55,7 @@ type ClosedPosition struct {
 type CloseRequest struct {
 	Symbol     string       // 用 Position.RawSymbol
 	Side       PositionSide // 要平的方向。Hedge mode 必填
+	RawSide    string       // 各交易所原樣的 side 字串；adapter 內部優先使用
 	Size       float64      // 平多少；0 表示全部
 	MarginMode string       // adapter 可能用到（OKX 平倉要這個）
 }

@@ -245,6 +245,7 @@ func closeCmd(exs map[string]exchange.Exchange, p exchange.Position) tea.Cmd {
 		res, err := ex.ClosePosition(ctx, exchange.CloseRequest{
 			Symbol:     p.RawSymbol,
 			Side:       p.Side,
+			RawSide:    p.RawSide,
 			Size:       p.Size,
 			MarginMode: p.MarginMode,
 		})

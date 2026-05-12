@@ -52,6 +52,7 @@ func (c *Client) Positions(ctx context.Context) ([]exchange.Position, error) {
 			Symbol:        normalizeSymbol(it.InstID),
 			RawSymbol:     it.InstID,
 			Side:          side,
+			RawSide:       it.PosSide, // "long" / "short" / "net" — close 時必須照原樣回傳
 			Size:          math.Abs(pos),
 			CoinSize:      coinSize,
 			EntryPrice:    exchange.MustParseFloat(it.AvgPx),
