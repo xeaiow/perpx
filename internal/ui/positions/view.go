@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/yourname/poscli/internal/exchange"
+	"github.com/yourname/poscli/internal/ui/numfmt"
 	"github.com/yourname/poscli/internal/ui/styles"
 )
 
@@ -27,32 +28,33 @@ func (m Model) View() string {
 		b.WriteString("\n")
 	}
 
+	unmatched := unmatchedSymbols(m.positions)
+
 	var totalPnL float64
 	for i, p := range m.positions {
 		coinText := "—"
 		if p.CoinSize > 0 {
-			coinText = trim(fmt.Sprintf("%g", p.CoinSize), 12)
+			coinText = trim(numfmt.F(p.CoinSize), 12)
 		}
 		row := []string{
 			p.Exchange,
 			p.Symbol,
 			string(p.Side),
-			trim(fmt.Sprintf("%g", p.Size), 12),
+			trim(numfmt.F(p.Size), 12),
 			coinText,
-			trim(fmt.Sprintf("%g", p.EntryPrice), 12),
-			trim(fmt.Sprintf("%g", p.MarkPrice), 12),
-			"", // uPnL coloured below
-			trim(fmt.Sprintf("%gx", p.Leverage), 5),
+			trim(numfmt.F(p.EntryPrice), 12),
+			trim(numfmt.F(p.MarkPrice), 12),
+			numfmt.F(p.UnrealizedPnL),
+			trim(numfmt.F(p.Leverage)+"x", 5),
 		}
-		// uPnL with sign + colour
-		pnlText := fmt.Sprintf("%+.2f", p.UnrealizedPnL)
-		row[7] = pnlText
 		line := formatRow(row, widths)
-		// colour the uPnL column by re-rendering
-		line = colourPnLColumn(line, widths, p.UnrealizedPnL)
-		if i == m.cursor {
+		// Style 優先序：cursor 反白 > unmatched 橘 > PnL 紅綠
+		switch {
+		case i == m.cursor:
 			line = "> " + line[2:]
 			line = styles.Selected.Render(line)
+		case unmatched[p.Symbol]:
+			line = styles.WarnLegRow.Render(line)
 		}
 		b.WriteString(line)
 		b.WriteString("\n")
@@ -71,8 +73,8 @@ func (m Model) View() string {
 	// Status line
 	b.WriteString(strings.Repeat("─", sumWidth(widths)))
 	b.WriteString("\n")
-	stats := fmt.Sprintf("Total uPnL: %+.2f USDT     %d positions across %d exchanges",
-		totalPnL, len(m.positions), len(m.exs))
+	stats := fmt.Sprintf("Total uPnL: %s USDT     %d positions across %d exchanges",
+		numfmt.F(totalPnL), len(m.positions), len(m.exs))
 	b.WriteString(styles.Pnl(totalPnL).Render(stats))
 	b.WriteString("\n")
 	if !m.lastFetch.IsZero() {
@@ -100,11 +102,31 @@ func formatRow(cols []string, widths []int) string {
 	return b.String()
 }
 
-func colourPnLColumn(line string, widths []int, pnl float64) string {
-	// 簡化：不對 line 內欄位做切割重染，整列依需要染色已足夠 — 直接回傳。
-	_ = widths
-	_ = pnl
-	return line
+// unmatchedSymbols 對每個 normalized symbol，回傳 true 代表「不是健康 hedge」。
+//
+// 健康 hedge 的嚴格定義：對該 symbol 恰好有 2 筆持倉、且恰為 1 long + 1 short。
+// 其餘所有情況一律視為 unmatched，包括：
+//   - 單腿（1 筆）
+//   - 同方向多腿（2L、3L、2S 等）
+//   - long/short 都有但條數不為 2（如 2L + 1S）
+func unmatchedSymbols(ps []exchange.Position) map[string]bool {
+	type counts struct{ long, short int }
+	bySymbol := map[string]counts{}
+	for _, p := range ps {
+		c := bySymbol[p.Symbol]
+		switch p.Side {
+		case exchange.SideLong:
+			c.long++
+		case exchange.SideShort:
+			c.short++
+		}
+		bySymbol[p.Symbol] = c
+	}
+	out := make(map[string]bool, len(bySymbol))
+	for sym, c := range bySymbol {
+		out[sym] = !(c.long == 1 && c.short == 1)
+	}
+	return out
 }
 
 func sumWidth(widths []int) int {
@@ -122,5 +144,3 @@ func trim(s string, w int) string {
 	return s
 }
 
-// 確保 exchange 變數實際使用，避免 unused import 報錯（exchange.Position 用在 trim 之外的型別）。
-var _ exchange.Position

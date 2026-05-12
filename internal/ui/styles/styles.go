@@ -9,6 +9,7 @@ var (
 	PnlPositive = lipgloss.Color("#0AC18E")
 	PnlNegative = lipgloss.Color("#F03A47")
 	DimColor    = lipgloss.Color("#888888")
+	WarnOrange  = lipgloss.Color("#FF8C00") // 用於標示異常（如 unmatched-leg）的橘色
 
 	TabActive   = lipgloss.NewStyle().Bold(true).Underline(true).Foreground(AccentColor).Padding(0, 1)
 	TabInactive = lipgloss.NewStyle().Foreground(DimColor).Padding(0, 1)
@@ -18,8 +19,9 @@ var (
 	Selected = lipgloss.NewStyle().Bold(true).Reverse(true)
 	Dim      = lipgloss.NewStyle().Foreground(DimColor)
 
-	ErrorText = lipgloss.NewStyle().Foreground(PnlNegative).Bold(true)
-	OKText    = lipgloss.NewStyle().Foreground(PnlPositive)
+	ErrorText  = lipgloss.NewStyle().Foreground(PnlNegative).Bold(true)
+	OKText     = lipgloss.NewStyle().Foreground(PnlPositive)
+	WarnLegRow = lipgloss.NewStyle().Foreground(WarnOrange)
 
 	Modal = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

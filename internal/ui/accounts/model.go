@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/yourname/poscli/internal/exchange"
+	"github.com/yourname/poscli/internal/ui/numfmt"
 	"github.com/yourname/poscli/internal/ui/styles"
 	"github.com/yourname/poscli/internal/ui/uimsg"
 )
@@ -74,7 +75,7 @@ func (m Model) View() string {
 		v, ok := m.equity[n]
 		var display string
 		if ok {
-			display = fmt.Sprintf("%.2f", v)
+			display = numfmt.F(v)
 			total += v
 		} else if _, hasErr := m.errors[n]; hasErr {
 			display = "—"
@@ -86,7 +87,7 @@ func (m Model) View() string {
 	}
 	b.WriteString(strings.Repeat("─", sumWidth(widths)))
 	b.WriteString("\n")
-	b.WriteString(styles.Header.Render(formatRow([]string{"TOTAL", fmt.Sprintf("%.2f", total)}, widths)))
+	b.WriteString(styles.Header.Render(formatRow([]string{"TOTAL", numfmt.F(total)}, widths)))
 	b.WriteString("\n")
 
 	if len(m.errors) > 0 {

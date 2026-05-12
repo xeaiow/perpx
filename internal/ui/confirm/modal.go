@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/yourname/poscli/internal/exchange"
+	"github.com/yourname/poscli/internal/ui/numfmt"
 	"github.com/yourname/poscli/internal/ui/styles"
 )
 
@@ -14,8 +15,9 @@ import (
 // inFlight=true 時顯示 "Submitting..."；否則顯示 y/n 提示。
 func Render(p exchange.Position, inFlight bool) string {
 	body := fmt.Sprintf(
-		"Exchange:  %s\nSymbol:    %s\nSide:      %s\nSize:      %g\nMark:      %g\nEst. PnL:  %+.2f USDT\n\nThis will submit a MARKET order to close the\nposition. This action is irreversible.\n\n",
-		p.Exchange, p.Symbol, string(p.Side), p.Size, p.MarkPrice, p.UnrealizedPnL,
+		"Exchange:  %s\nSymbol:    %s\nSide:      %s\nSize:      %s\nMark:      %s\nEst. PnL:  %s USDT\n\nThis will submit a MARKET order to close the\nposition. This action is irreversible.\n\n",
+		p.Exchange, p.Symbol, string(p.Side),
+		numfmt.F(p.Size), numfmt.F(p.MarkPrice), numfmt.F(p.UnrealizedPnL),
 	)
 	if inFlight {
 		body += styles.Dim.Render("Submitting...")

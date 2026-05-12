@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yourname/poscli/internal/ui/numfmt"
 	"github.com/yourname/poscli/internal/ui/styles"
 )
 
@@ -49,7 +50,7 @@ func (m Model) View() string {
 			formatOrDash(it.Size),
 			formatOrDash(it.EntryPrice),
 			formatOrDash(it.ExitPrice),
-			fmt.Sprintf("%+.2f", it.RealizedPnL),
+			numfmt.F(it.RealizedPnL),
 		}
 		if it.CloseTime.IsZero() {
 			row[0] = "—"
@@ -83,7 +84,7 @@ func formatOrDash(v float64) string {
 	if v == 0 {
 		return "—"
 	}
-	return fmt.Sprintf("%g", v)
+	return numfmt.F(v)
 }
 
 func formatRow(cols []string, widths []int) string {

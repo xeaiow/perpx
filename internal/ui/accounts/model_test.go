@@ -21,13 +21,14 @@ func TestUpdate_RendersEquityAndTotal(t *testing.T) {
 		At: time.Now(),
 	})
 	out := m.View()
-	if !strings.Contains(out, "1000.00") {
+	// numfmt：整數不補 0
+	if !strings.Contains(out, "1000") {
 		t.Errorf("missing bybit equity:\n%s", out)
 	}
-	if !strings.Contains(out, "500.00") {
+	if !strings.Contains(out, "500") {
 		t.Errorf("missing okx equity:\n%s", out)
 	}
-	if !strings.Contains(out, "1500.00") {
+	if !strings.Contains(out, "1500") {
 		t.Errorf("missing total:\n%s", out)
 	}
 }
