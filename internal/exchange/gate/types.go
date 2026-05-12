@@ -1,18 +1,20 @@
 package gate
 
 type rawPosition struct {
-	User           int     `json:"user"`
-	Contract       string  `json:"contract"`
-	Size           float64 `json:"size"` // 注意：Gate 是數字而非字串
-	Leverage       string  `json:"leverage"`
-	Value          string  `json:"value"`
-	Margin         string  `json:"margin"`
-	EntryPrice     string  `json:"entry_price"`
-	LiqPrice       string  `json:"liq_price"`
-	MarkPrice      string  `json:"mark_price"`
-	UnrealisedPnl  string  `json:"unrealised_pnl"`
-	RealisedPnl    string  `json:"realised_pnl"`
-	Mode           string  `json:"mode"` // single / dual_long / dual_short
+	User               int     `json:"user"`
+	Contract           string  `json:"contract"`
+	Size               float64 `json:"size"` // 注意：Gate 是數字而非字串
+	Leverage           string  `json:"leverage"`
+	LeverageMax        string  `json:"leverage_max"`
+	CrossLeverageLimit string  `json:"cross_leverage_limit"` // 跨倉模式下 leverage="0"，實際倍率在這裡
+	Value              string  `json:"value"`
+	Margin             string  `json:"margin"`
+	EntryPrice         string  `json:"entry_price"`
+	LiqPrice           string  `json:"liq_price"`
+	MarkPrice          string  `json:"mark_price"`
+	UnrealisedPnl      string  `json:"unrealised_pnl"`
+	RealisedPnl        string  `json:"realised_pnl"`
+	Mode               string  `json:"mode"` // single / dual_long / dual_short
 }
 
 type rawAccount struct {

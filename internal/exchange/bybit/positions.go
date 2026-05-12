@@ -36,6 +36,7 @@ func (c *Client) Positions(ctx context.Context) ([]exchange.Position, error) {
 			RawSymbol:     it.Symbol,
 			Side:          sideFromBybit(it.Side),
 			Size:          size,
+			CoinSize:      size, // Bybit V5 USDT-M：size 本身就是 coin 顆數
 			EntryPrice:    exchange.MustParseFloat(it.AvgPrice),
 			MarkPrice:     exchange.MustParseFloat(it.MarkPrice),
 			UnrealizedPnL: exchange.MustParseFloat(it.UnrealisedPnl),

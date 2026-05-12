@@ -69,18 +69,9 @@ func TestDo_SetsHeaders(t *testing.T) {
 	}
 }
 
-func TestPositions_ContractToCoin(t *testing.T) {
-	var calls int
+func TestPositions_SizeIsContractsCoinSizeFromValueMark(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		switch r.URL.Path {
-		case "/api/v4/futures/usdt/positions":
-			_, _ = io.WriteString(w, `[{"contract":"BTC_USDT","size":150,"entry_price":"60000","mark_price":"61000","unrealised_pnl":"100","leverage":"10","value":"9150","mode":"single"}]`)
-		case "/api/v4/futures/usdt/contracts/BTC_USDT":
-			_, _ = io.WriteString(w, `{"name":"BTC_USDT","quanto_multiplier":"0.0001"}`)
-		default:
-			http.NotFound(w, r)
-		}
+		_, _ = io.WriteString(w, `[{"contract":"BTC_USDT","size":150,"entry_price":"60000","mark_price":"61000","unrealised_pnl":"100","leverage":"10","value":"9150","mode":"single"}]`)
 	}))
 	defer srv.Close()
 	c := newTestClient(t, srv)
@@ -91,22 +82,22 @@ func TestPositions_ContractToCoin(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("expected 1 position, got %d", len(got))
 	}
-	if got[0].Symbol != "BTCUSDT" {
-		t.Errorf("symbol = %q", got[0].Symbol)
+	p := got[0]
+	if p.Symbol != "BTCUSDT" {
+		t.Errorf("symbol = %q", p.Symbol)
 	}
-	if diff := got[0].Size - 0.015; diff > 1e-9 || diff < -1e-9 {
-		t.Errorf("expected size 150*0.0001=0.015, got %v", got[0].Size)
+	if p.Size != 150 {
+		t.Errorf("Size should keep raw contracts count, got %v", p.Size)
+	}
+	// CoinSize = value / mark = 9150 / 61000 = 0.15
+	if diff := p.CoinSize - 0.15; diff > 1e-9 || diff < -1e-9 {
+		t.Errorf("CoinSize expected 0.15, got %v", p.CoinSize)
 	}
 }
 
 func TestPositions_NegativeSizeIsShort(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/v4/futures/usdt/positions":
-			_, _ = io.WriteString(w, `[{"contract":"ETH_USDT","size":-100,"entry_price":"3000","mark_price":"2950","unrealised_pnl":"50","leverage":"5","value":"295","mode":"single"}]`)
-		case "/api/v4/futures/usdt/contracts/ETH_USDT":
-			_, _ = io.WriteString(w, `{"name":"ETH_USDT","quanto_multiplier":"0.01"}`)
-		}
+		_, _ = io.WriteString(w, `[{"contract":"ETH_USDT","size":-100,"entry_price":"3000","mark_price":"2950","unrealised_pnl":"50","leverage":"5","value":"295","mode":"single"}]`)
 	}))
 	defer srv.Close()
 	c := newTestClient(t, srv)
@@ -114,8 +105,43 @@ func TestPositions_NegativeSizeIsShort(t *testing.T) {
 	if len(got) != 1 || got[0].Side != exchange.SideShort {
 		t.Fatalf("expected short, got %+v", got)
 	}
-	if got[0].Size != 1.0 { // 100 * 0.01
-		t.Errorf("size = %v", got[0].Size)
+	// Size 是 raw size 的絕對值（contracts），不再做 multiplier 換算。
+	if got[0].Size != 100 {
+		t.Errorf("Size = %v, want 100", got[0].Size)
+	}
+}
+
+func TestPositions_CrossLeverageFallback(t *testing.T) {
+	// 跨倉模式：raw leverage="0"，實際倍率在 cross_leverage_limit。
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `[{"contract":"AI_USDT","size":3500,"entry_price":"0.02308","mark_price":"0.02341","unrealised_pnl":"1.155","value":"81.935","leverage":"0","cross_leverage_limit":"5","leverage_max":"10","mode":"single"}]`)
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv)
+	got, err := c.Positions(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1, got %d", len(got))
+	}
+	if got[0].Leverage != 5 {
+		t.Errorf("expected leverage=5 from cross_leverage_limit, got %v", got[0].Leverage)
+	}
+}
+
+func TestPositions_CoinSizeZeroWhenMarkZero(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `[{"contract":"BTC_USDT","size":150,"entry_price":"60000","mark_price":"0","value":"0","leverage":"10","mode":"single"}]`)
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv)
+	got, _ := c.Positions(context.Background())
+	if len(got) != 1 {
+		t.Fatalf("expected 1 position, got %d", len(got))
+	}
+	if got[0].CoinSize != 0 {
+		t.Errorf("CoinSize should be 0 when mark=0, got %v", got[0].CoinSize)
 	}
 }
 

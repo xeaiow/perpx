@@ -25,20 +25,32 @@ func (c *Client) Positions(ctx context.Context) ([]exchange.Position, error) {
 		if it.Size < 0 {
 			side = exchange.SideShort
 		}
-		mult := c.getMultiplier(ctx, it.Contract)
-		coinSize := math.Abs(it.Size) * mult
+		// Size 保持交易所原樣（contracts）；CoinSize 由 value/markPrice 推算，
+		// 避免額外打一支 /contracts/{contract} 拿 quanto_multiplier。
+		mark := exchange.MustParseFloat(it.MarkPrice)
+		notional := exchange.MustParseFloat(it.Value)
+		coinSize := 0.0
+		if mark > 0 {
+			coinSize = notional / mark
+		}
+		// leverage：跨倉時 raw "0"，實際倍率在 cross_leverage_limit。
+		lev := exchange.MustParseFloat(it.Leverage)
+		if lev == 0 {
+			lev = exchange.MustParseFloat(it.CrossLeverageLimit)
+		}
 		sym := strings.ReplaceAll(it.Contract, "_", "")
 		out = append(out, exchange.Position{
 			Exchange:      "gate",
 			Symbol:        sym,
 			RawSymbol:     it.Contract,
 			Side:          side,
-			Size:          coinSize,
+			Size:          math.Abs(it.Size),
+			CoinSize:      coinSize,
 			EntryPrice:    exchange.MustParseFloat(it.EntryPrice),
-			MarkPrice:     exchange.MustParseFloat(it.MarkPrice),
+			MarkPrice:     mark,
 			UnrealizedPnL: exchange.MustParseFloat(it.UnrealisedPnl),
-			Leverage:      exchange.MustParseFloat(it.Leverage),
-			Notional:      exchange.MustParseFloat(it.Value),
+			Leverage:      lev,
+			Notional:      notional,
 			MarginMode:    "cross",
 			UpdatedAt:     time.Now(),
 		})

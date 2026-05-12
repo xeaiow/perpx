@@ -11,7 +11,11 @@ import (
 
 func (c *Client) Positions(ctx context.Context) ([]exchange.Position, error) {
 	var arr []rawPosition
-	if err := c.do(ctx, http.MethodGet, "/fapi/v3/positionRisk", nil, true, &arr); err != nil {
+	// v2 over v3: v3 omits `leverage` and `marginType` from the response (they
+	// became account-level in v3). v2 still returns both, and that's the only
+	// reason we'd want to call this endpoint — the extra v3 fields (askNotional,
+	// adl, maintMargin, …) we don't use.
+	if err := c.do(ctx, http.MethodGet, "/fapi/v2/positionRisk", nil, true, &arr); err != nil {
 		return nil, err
 	}
 
@@ -36,6 +40,7 @@ func (c *Client) Positions(ctx context.Context) ([]exchange.Position, error) {
 			RawSymbol:     it.Symbol,
 			Side:          side,
 			Size:          math.Abs(amt),
+			CoinSize:      math.Abs(amt), // Binance USDⓈ-M：positionAmt 是 coin 顆數
 			EntryPrice:    exchange.MustParseFloat(it.EntryPrice),
 			MarkPrice:     exchange.MustParseFloat(it.MarkPrice),
 			UnrealizedPnL: exchange.MustParseFloat(it.UnRealizedProfit),

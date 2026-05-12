@@ -40,17 +40,25 @@ func (c *Client) Positions(ctx context.Context) ([]exchange.Position, error) {
 				side = exchange.SideShort
 			}
 		}
+		// OKX 的 pos 對 SWAP 是「合約張數」；CoinSize 用 notional/mark 推算。
+		mark := exchange.MustParseFloat(it.MarkPx)
+		notional := exchange.MustParseFloat(it.NotionalUsd)
+		coinSize := 0.0
+		if mark > 0 {
+			coinSize = notional / mark
+		}
 		out = append(out, exchange.Position{
 			Exchange:      "okx",
 			Symbol:        normalizeSymbol(it.InstID),
 			RawSymbol:     it.InstID,
 			Side:          side,
 			Size:          math.Abs(pos),
+			CoinSize:      coinSize,
 			EntryPrice:    exchange.MustParseFloat(it.AvgPx),
-			MarkPrice:     exchange.MustParseFloat(it.MarkPx),
+			MarkPrice:     mark,
 			UnrealizedPnL: exchange.MustParseFloat(it.Upl),
 			Leverage:      exchange.MustParseFloat(it.Lever),
-			Notional:      exchange.MustParseFloat(it.NotionalUsd),
+			Notional:      notional,
 			MarginMode:    it.MgnMode,
 			UpdatedAt:     time.UnixMilli(exchange.MustParseInt(it.UTime)),
 		})

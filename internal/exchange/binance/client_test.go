@@ -43,7 +43,7 @@ func TestDo_GETAppendsSignatureToQuery(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := newTestClient(t, srv)
-	if err := c.do(context.Background(), http.MethodGet, "/fapi/v3/positionRisk", nil, true, &[]rawPosition{}); err != nil {
+	if err := c.do(context.Background(), http.MethodGet, "/fapi/v2/positionRisk", nil, true, &[]rawPosition{}); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(seenURL, "signature=") {

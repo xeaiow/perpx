@@ -40,6 +40,7 @@ func (c *Client) Positions(ctx context.Context) ([]exchange.Position, error) {
 			RawSymbol:     it.Symbol,
 			Side:          side,
 			Size:          total,
+			CoinSize:      total, // Bitget V2 Mix：total 是 coin 顆數
 			EntryPrice:    exchange.MustParseFloat(it.OpenPriceAvg),
 			MarkPrice:     mark,
 			UnrealizedPnL: exchange.MustParseFloat(it.UnrealizedPL),

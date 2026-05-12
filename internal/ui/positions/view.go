@@ -15,8 +15,8 @@ import (
 func (m Model) View() string {
 	var b strings.Builder
 
-	headers := []string{"Exchange", "Symbol", "Side", "Size", "Entry", "Mark", "uPnL", "Lev"}
-	widths := []int{10, 14, 6, 12, 12, 12, 12, 5}
+	headers := []string{"Exchange", "Symbol", "Side", "Size", "Coin", "Entry", "Mark", "uPnL", "Lev"}
+	widths := []int{10, 14, 6, 12, 12, 12, 12, 12, 5}
 	b.WriteString(styles.Header.Render(formatRow(headers, widths)))
 	b.WriteString("\n")
 	b.WriteString(strings.Repeat("─", sumWidth(widths)))
@@ -29,11 +29,16 @@ func (m Model) View() string {
 
 	var totalPnL float64
 	for i, p := range m.positions {
+		coinText := "—"
+		if p.CoinSize > 0 {
+			coinText = trim(fmt.Sprintf("%g", p.CoinSize), 12)
+		}
 		row := []string{
 			p.Exchange,
 			p.Symbol,
 			string(p.Side),
 			trim(fmt.Sprintf("%g", p.Size), 12),
+			coinText,
 			trim(fmt.Sprintf("%g", p.EntryPrice), 12),
 			trim(fmt.Sprintf("%g", p.MarkPrice), 12),
 			"", // uPnL coloured below
@@ -41,7 +46,7 @@ func (m Model) View() string {
 		}
 		// uPnL with sign + colour
 		pnlText := fmt.Sprintf("%+.2f", p.UnrealizedPnL)
-		row[6] = pnlText
+		row[7] = pnlText
 		line := formatRow(row, widths)
 		// colour the uPnL column by re-rendering
 		line = colourPnLColumn(line, widths, p.UnrealizedPnL)

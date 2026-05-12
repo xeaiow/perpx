@@ -23,7 +23,8 @@ type Position struct {
 	Symbol        string       // 標準化 symbol，例如 "BTCUSDT"。跨所比對用
 	RawSymbol     string       // 各交易所原始 symbol，平倉時用這個（OKX 是 "BTC-USDT-SWAP" 等）
 	Side          PositionSide
-	Size          float64      // 絕對值
+	Size          float64      // 交易所原樣回的數量；多數家是 coin 顆數，Gate 是 contracts
+	CoinSize      float64      // 統一單位的 coin 顆數；UI 用這個顯示「實際幣量」
 	EntryPrice    float64
 	MarkPrice     float64
 	UnrealizedPnL float64      // USDT

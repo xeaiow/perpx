@@ -16,7 +16,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/yourname/poscli/internal/config"
@@ -33,9 +32,6 @@ type Client struct {
 	apiSecret []byte
 	baseURL   string
 	http      *http.Client
-
-	mu          sync.RWMutex
-	multipliers map[string]float64
 
 	nowFn func() time.Time
 }
@@ -54,11 +50,10 @@ func NewWithBaseURL(c *config.Credentials, rt config.Runtime, base string) *Clie
 		timeout = 10 * time.Second
 	}
 	return &Client{
-		apiKey:      append([]byte(nil), c.APIKey...),
-		apiSecret:   append([]byte(nil), c.APISecret...),
-		baseURL:     strings.TrimRight(base, "/"),
-		http:        &http.Client{Timeout: timeout},
-		multipliers: map[string]float64{},
+		apiKey:    append([]byte(nil), c.APIKey...),
+		apiSecret: append([]byte(nil), c.APISecret...),
+		baseURL:   strings.TrimRight(base, "/"),
+		http:      &http.Client{Timeout: timeout},
 	}
 }
 
