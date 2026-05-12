@@ -13,8 +13,8 @@ unlocked by a master password at startup.
 | M1 — Secret management (Argon2id + AES-GCM) | ✅ Done |
 | M2 — Bybit adapter | ✅ Done |
 | M3 — Zoomex adapter (reuses Bybit) | ✅ Done |
-| M4 — Binance / OKX / Bitget / Gate adapters | ⏳ Next |
-| M5 — TUI Positions tab | |
+| M4 — Binance / OKX / Bitget / Gate adapters | ✅ Done |
+| M5 — TUI Positions tab | ⏳ Next |
 | M6 — Close-position flow with confirmation | |
 | M7 — History tab | |
 | M8 — Accounts tab + polish | |

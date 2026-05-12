@@ -51,8 +51,8 @@ docs/                           Detailed references. Load only when needed.
 | M1 — secret management | done | 13 tests passing; covers crypto + permission + missing passphrase |
 | M2 — Bybit adapter | done | client/positions/balance/history/close + signing fixture + httptest |
 | M3 — Zoomex (extends Bybit) | done | Composition; base URL + path prefix + close-pnl override |
-| **M4 — Binance/OKX/Bitget/Gate adapters** | **next** | Each: see `docs/03-*.md` |
-| M5 — TUI Positions tab | pending | `docs/04-tui.md` |
+| M4 — Binance/OKX/Bitget/Gate adapters | done | All four implement the interface; signing fixtures verified by Python HMAC |
+| **M5 — TUI Positions tab** | **next** | `docs/04-tui.md` |
 | M6 — Close-position flow | pending | y/n confirmation, then refresh |
 | M7 — History tab | pending | Note: Binance has no native endpoint; aggregate from income |
 | M8 — Accounts tab + polish | pending | Equity = available + Σ position notional |

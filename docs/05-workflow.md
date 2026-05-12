@@ -220,3 +220,10 @@ For each of binance/okx/bitget/gate:
 ### M3 (Zoomex)
 - Composition 包 `bybit.Client`：`baseURL=https://openapi.zoomex.com`、`pathPrefix=/cloud/trade/v3`、`SetName("zoomex")`。
 - History 路徑為 `/position/close-pnl`（非 `closed-pnl`），透過 `HistoryAtPath` 覆寫。
+
+### M4 (Binance / OKX / Bitget / Gate)
+- 各家簽章在 client.go 中實作；fixture 預期值都用 Python 獨立算過避免「以實作回填預期」。
+- Binance：form-encoded POST、`positionAmt` 帶正負號。
+- OKX：ISO 8601 timestamp + base64(HMAC-SHA256)、`code` 是字串 `"0"`；passphrase 為 header。
+- Bitget：簽章同 OKX，但 timestamp 是 unix ms 字串、成功碼是 `"00000"`（五個零）。
+- Gate：HMAC-SHA512、Unix 秒、size 是 contracts 需乘 `quanto_multiplier`、close 用 `size=0+close=true` idiom。

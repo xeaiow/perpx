@@ -21,7 +21,11 @@ import (
 	"github.com/yourname/poscli/internal/exchange"
 
 	// 啟用 adapter 註冊
+	_ "github.com/yourname/poscli/internal/exchange/binance"
+	_ "github.com/yourname/poscli/internal/exchange/bitget"
 	_ "github.com/yourname/poscli/internal/exchange/bybit"
+	_ "github.com/yourname/poscli/internal/exchange/gate"
+	_ "github.com/yourname/poscli/internal/exchange/okx"
 	_ "github.com/yourname/poscli/internal/exchange/zoomex"
 )
 
