@@ -210,3 +210,9 @@ For each of binance/okx/bitget/gate:
 - All decryption failures uniformly return `ErrWrongPassword`.
 - 0600 permissions enforced on Unix; Windows skipped (different ACL model).
 - 13 unit tests passing.
+
+### M2 (Bybit adapter)
+- `internal/exchange/{types.go, errors.go, registry.go}` 建立。
+- Bybit V5：HMAC-SHA256 on `ts + apiKey + recvWindow + (query OR body)`；time sync via `/v5/market/time`；retCode 10002 → resync + retry once。
+- `NewWithBaseURL(creds, rt, baseURL, pathPrefix)` 與 `SetName(name)` 預埋給 M3 Zoomex 用。
+- 簽章 fixture 預期值用 Python `hmac.new(secret, payload, hashlib.sha256).hexdigest()` 獨立驗算。

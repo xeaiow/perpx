@@ -49,8 +49,8 @@ docs/                           Detailed references. Load only when needed.
 |---|---|---|
 | M0 — skeleton, cobra commands | done | `init`/`verify` work end-to-end |
 | M1 — secret management | done | 13 tests passing; covers crypto + permission + missing passphrase |
-| **M2 — Bybit adapter** | **next** | Start here. See `docs/02-bybit.md` |
-| M3 — Zoomex (extends Bybit) | pending | Override base URL + path prefix only |
+| M2 — Bybit adapter | done | client/positions/balance/history/close + signing fixture + httptest |
+| **M3 — Zoomex (extends Bybit)** | **next** | Override base URL + path prefix only |
 | M4 — Binance/OKX/Bitget/Gate adapters | pending | Each: see `docs/03-*.md` |
 | M5 — TUI Positions tab | pending | `docs/04-tui.md` |
 | M6 — Close-position flow | pending | y/n confirmation, then refresh |

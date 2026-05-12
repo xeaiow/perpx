@@ -69,9 +69,11 @@ type CloseResult struct {
 // Exchange 是每個交易所 adapter 要實作的介面。
 //
 // 所有方法都接受 context.Context；timeout/取消由呼叫端控制。
+// 範圍限定 USDT-M 永續合約；其他 settle coin 不在 scope 內。
 type Exchange interface {
 	Name() string
 	Positions(ctx context.Context) ([]Position, error)
+	AvailableBalance(ctx context.Context) (float64, error)
 	History(ctx context.Context, since time.Time) ([]ClosedPosition, error)
 	ClosePosition(ctx context.Context, req CloseRequest) (CloseResult, error)
 }
