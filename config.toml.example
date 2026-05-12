@@ -1,0 +1,51 @@
+# poscli config.toml 範例
+#
+# 不要直接編輯這個檔；用 `poscli init` 互動產生，或 `poscli add <exchange>` 增改。
+# 所有 api_key / api_secret / passphrase 都是 AES-256-GCM 加密過的字串，
+# 解密需要啟動時輸入的 master password。
+
+[security]
+# salt 由 init 隨機生成，請勿手動改
+salt = "REPLACED_BY_INIT"
+kdf = "argon2id"
+
+[security.kdf_params]
+time = 3
+memory = 65536     # KiB = 64 MiB
+parallelism = 4
+
+[runtime]
+use_testnet = false
+http_timeout_sec = 10
+
+[exchanges.binance]
+enabled = true
+api_key = "enc:..."
+api_secret = "enc:..."
+
+[exchanges.okx]
+enabled = true
+api_key = "enc:..."
+api_secret = "enc:..."
+passphrase = "enc:..."     # OKX 需要
+
+[exchanges.bybit]
+enabled = true
+api_key = "enc:..."
+api_secret = "enc:..."
+
+[exchanges.bitget]
+enabled = true
+api_key = "enc:..."
+api_secret = "enc:..."
+passphrase = "enc:..."     # Bitget 需要
+
+[exchanges.gate]
+enabled = true
+api_key = "enc:..."
+api_secret = "enc:..."
+
+[exchanges.zoomex]
+enabled = false
+api_key = ""
+api_secret = ""
