@@ -52,10 +52,10 @@ docs/                           Detailed references. Load only when needed.
 | M2 — Bybit adapter | done | client/positions/balance/history/close + signing fixture + httptest |
 | M3 — Zoomex (extends Bybit) | done | Composition; base URL + path prefix + close-pnl override |
 | M4 — Binance/OKX/Bitget/Gate adapters | done | All four implement the interface; signing fixtures verified by Python HMAC |
-| **M5 — TUI Positions tab** | **next** | `docs/04-tui.md` |
-| M6 — Close-position flow | pending | y/n confirmation, then refresh |
-| M7 — History tab | pending | Note: Binance has no native endpoint; aggregate from income |
-| M8 — Accounts tab + polish | pending | Equity = available + Σ position notional |
+| M5 — TUI Positions tab | done | Bubble Tea v2 (`charm.land/bubbletea/v2`); parallel fetch + table + status line |
+| M6 — Close-position flow | done | `x` opens modal, `y/n/esc`, toast + refresh on result |
+| M7 — History tab | done | Sort desc by close time; `f` cycles filter; empty placeholder |
+| M8 — Accounts tab + polish | done | Equity per exchange; total row; help overlay (?); — for failed |
 
 ## Build & test commands
 

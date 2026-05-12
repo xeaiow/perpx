@@ -14,10 +14,10 @@ unlocked by a master password at startup.
 | M2 — Bybit adapter | ✅ Done |
 | M3 — Zoomex adapter (reuses Bybit) | ✅ Done |
 | M4 — Binance / OKX / Bitget / Gate adapters | ✅ Done |
-| M5 — TUI Positions tab | ⏳ Next |
-| M6 — Close-position flow with confirmation | |
-| M7 — History tab | |
-| M8 — Accounts tab + polish | |
+| M5 — TUI Positions tab | ✅ Done |
+| M6 — Close-position flow with confirmation | ✅ Done |
+| M7 — History tab | ✅ Done |
+| M8 — Accounts tab + polish | ✅ Done |
 
 ## Build
 
@@ -36,7 +36,7 @@ Requires Go 1.22+.
 # 2. Verify config can be decrypted
 ./poscli verify
 
-# 3. Run TUI (not yet implemented — wait for M5)
+# 3. Run TUI
 ./poscli run
 ```
 

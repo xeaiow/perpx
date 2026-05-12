@@ -10,15 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"sort"
-	"sync"
-	"time"
-
+	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
 	"github.com/yourname/poscli/internal/config"
 	"github.com/yourname/poscli/internal/exchange"
+	"github.com/yourname/poscli/internal/ui"
 
 	// 啟用 adapter 註冊
 	_ "github.com/yourname/poscli/internal/exchange/binance"
@@ -283,9 +281,7 @@ func newRotateCmd() *cobra.Command {
 
 // ---- run ----
 //
-// M2 階段：load config、prompt password、建立 registry、
-// 平行呼叫每個 adapter.Positions() 並印出統計。
-// 之後 milestone 會把 TUI 接上來取代這段。
+// Load config、prompt password、建立 registry、啟動 TUI。
 
 func newRunCmd() *cobra.Command {
 	return &cobra.Command{
@@ -309,47 +305,17 @@ func newRunCmd() *cobra.Command {
 				return err
 			}
 			if len(reg) == 0 {
-				return errors.New("no exchange adapters enabled (have any been implemented yet?)")
+				return errors.New("no exchange adapters enabled in config.toml")
 			}
 
-			ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
-			defer cancel()
-
-			type posResult struct {
-				name  string
-				count int
-				err   error
-			}
-			out := make(chan posResult, len(reg))
-			var wg sync.WaitGroup
+			exs := make(map[string]exchange.Exchange, len(reg))
 			for name, ex := range reg {
-				wg.Add(1)
-				go func(name string, ex exchange.Exchange) {
-					defer wg.Done()
-					ps, err := ex.Positions(ctx)
-					out <- posResult{name: string(name), count: len(ps), err: err}
-				}(string(name), ex)
+				exs[string(name)] = ex
 			}
-			wg.Wait()
-			close(out)
 
-			rows := make([]posResult, 0, len(reg))
-			for r := range out {
-				rows = append(rows, r)
-			}
-			sort.Slice(rows, func(i, j int) bool { return rows[i].name < rows[j].name })
-			for _, r := range rows {
-				if r.err != nil {
-					fmt.Printf("%-10s ERROR: %v\n", r.name, r.err)
-					continue
-				}
-				suffix := "positions"
-				if r.count == 1 {
-					suffix = "position"
-				}
-				fmt.Printf("%-10s %d %s\n", r.name, r.count, suffix)
-			}
-			return nil
+			prog := tea.NewProgram(ui.NewFromMap(exs))
+			_, err = prog.Run()
+			return err
 		},
 	}
 }

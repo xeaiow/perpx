@@ -227,3 +227,12 @@ For each of binance/okx/bitget/gate:
 - OKX：ISO 8601 timestamp + base64(HMAC-SHA256)、`code` 是字串 `"0"`；passphrase 為 header。
 - Bitget：簽章同 OKX，但 timestamp 是 unix ms 字串、成功碼是 `"00000"`（五個零）。
 - Gate：HMAC-SHA512、Unix 秒、size 是 contracts 需乘 `quanto_multiplier`、close 用 `size=0+close=true` idiom。
+
+### M5–M8 (TUI)
+- 用 Bubble Tea v2：`charm.land/bubbletea/v2`、`charm.land/bubbles/v2`、`charm.land/lipgloss/v2`。
+- 跨套件 msg 型別放在 `internal/ui/uimsg`，避免 `internal/ui` 與 sub-tabs 的 import cycle。
+- v2 介面與 v1 差異：`Init() Cmd`、`Update(Msg) (Model, Cmd)`、`View() View`；alt screen 用 `view.AltScreen = true` 設定。
+- positions tab 即時平行抓所有 adapter；close-position confirmation modal 由 root app 接管 `x/y/n/esc` 鍵；CloseResultMsg 觸發 toast + refresh。
+- history tab 由 close time 反向排序；`f` cycle filter；空資料顯示 placeholder。
+- accounts tab equity = available + Σ position notional；失敗顯示 `—`。
+- help overlay 由 `?` toggle。
