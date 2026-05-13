@@ -33,8 +33,9 @@ type Security struct {
 
 // Runtime 是執行時偏好設定（非機密），放在 [runtime] 段。
 type Runtime struct {
-	UseTestnet     bool `toml:"use_testnet"`
-	HTTPTimeoutSec int  `toml:"http_timeout_sec"`
+	UseTestnet     bool   `toml:"use_testnet"`
+	HTTPTimeoutSec int    `toml:"http_timeout_sec"`
+	LogFile        string `toml:"log_file"` // close-position log 寫入位置；空字串使用預設
 }
 
 func (r Runtime) defaults() Runtime {

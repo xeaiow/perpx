@@ -285,7 +285,8 @@ func newRotateCmd() *cobra.Command {
 // Load config、prompt password、建立 registry、啟動 TUI。
 
 func newRunCmd() *cobra.Command {
-	return &cobra.Command{
+	var flagLogFile string
+	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Start the TUI (default command)",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -314,7 +315,7 @@ func newRunCmd() *cobra.Command {
 				exs[string(name)] = ex
 			}
 
-			closelog.Init()
+			closelog.Init(resolveLogFile(flagLogFile, result.Config.Runtime.LogFile))
 			defer closelog.Sync()
 
 			prog := tea.NewProgram(ui.NewFromMap(exs))
@@ -322,8 +323,30 @@ func newRunCmd() *cobra.Command {
 			return err
 		},
 	}
+	cmd.Flags().StringVar(&flagLogFile, "log-file", "",
+		"close-position log path (overrides $POSCLI_LOG_FILE and runtime.log_file in config.toml)")
+	return cmd
 }
 
 func base64Encode(b []byte) string {
 	return base64.StdEncoding.EncodeToString(b)
+}
+
+// resolveLogFile 依優先級鏈算出最終 log path：
+//
+//	1. --log-file flag      （明確指定、最高優先）
+//	2. $POSCLI_LOG_FILE     （臨時 override，不污染 config）
+//	3. runtime.log_file     （config.toml 持久設定）
+//	4. closelog.DefaultPath ()（fallback：~/.config/poscli/close.log）
+func resolveLogFile(flag, fromConfig string) string {
+	if flag != "" {
+		return flag
+	}
+	if env := os.Getenv(closelog.EnvOverride); env != "" {
+		return env
+	}
+	if fromConfig != "" {
+		return fromConfig
+	}
+	return closelog.DefaultPath()
 }

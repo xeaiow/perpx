@@ -20,7 +20,9 @@ import (
 
 const (
 	defaultRelPath = ".config/poscli/close.log"
-	envOverride    = "POSCLI_LOG_FILE"
+	// EnvOverride 是支援 $POSCLI_LOG_FILE 的 env var 名稱。main.go 在組合
+	// flag > env > config > default 優先級時會用到這個常數。
+	EnvOverride = "POSCLI_LOG_FILE"
 
 	maxSizeMB  = 10
 	maxBackups = 5
@@ -34,17 +36,18 @@ var (
 	currentTo string // 目前 logger 寫到的檔案路徑（給測試確認）
 )
 
-// Init 初始化 logger。多次呼叫只第一次生效；後續忽略。
-// 失敗時不阻斷程式啟動、改回 nop logger。
-func Init() {
+// Init 初始化 logger 並把寫入位置設為 path。
+// 失敗時不阻斷程式啟動、改回 nop logger；path 為空字串時退到 DefaultPath()。
+// 多次呼叫會以最新一次為準（測試方便、生產上呼叫一次即可）。
+func Init(path string) {
 	mu.Lock()
 	defer mu.Unlock()
-	if current != nil {
-		return
+	if path == "" {
+		path = DefaultPath()
 	}
-	path := resolvePath()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		current = zap.NewNop()
+		currentTo = ""
 		return
 	}
 	w := &lumberjack.Logger{
@@ -66,31 +69,24 @@ func Init() {
 	currentTo = path
 }
 
-// InitWithPath 跟 Init 一樣，但強制使用指定路徑（測試用）。
+// InitWithPath 是 Init 的別名（向後相容；舊測試呼叫的是這個）。
+// 回傳 error 是為了能在測試中表達 mkdir 失敗、目前 Init 把錯誤吞了。
 func InitWithPath(path string) error {
-	mu.Lock()
-	defer mu.Unlock()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	w := &lumberjack.Logger{
-		Filename:   path,
-		MaxSize:    maxSizeMB,
-		MaxBackups: maxBackups,
-		MaxAge:     maxAgeDays,
-		Compress:   compress,
-	}
-	encCfg := zap.NewProductionEncoderConfig()
-	encCfg.TimeKey = "ts"
-	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
-	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encCfg),
-		zapcore.AddSync(w),
-		zapcore.InfoLevel,
-	)
-	current = zap.New(core)
-	currentTo = path
+	Init(path)
 	return nil
+}
+
+// DefaultPath 回傳預設 log 位置：~/.config/poscli/close.log。
+// HOME 無法取得時退到當前工作目錄下的 close.log。
+func DefaultPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "close.log"
+	}
+	return filepath.Join(home, defaultRelPath)
 }
 
 // Sync 把 buffer 寫出（在 main 結尾 defer 一次）。
@@ -181,13 +177,3 @@ func errString(err error) string {
 	return err.Error()
 }
 
-func resolvePath() string {
-	if p := os.Getenv(envOverride); p != "" {
-		return p
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "close.log"
-	}
-	return filepath.Join(home, defaultRelPath)
-}

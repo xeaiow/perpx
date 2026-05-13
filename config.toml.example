@@ -17,6 +17,9 @@ parallelism = 4
 [runtime]
 use_testnet = false
 http_timeout_sec = 10
+# log_file = "/var/log/poscli/close.log"   # close-position log 位置；
+                                           # 留空（或省略此欄）使用預設 ~/.config/poscli/close.log
+                                           # 優先級：--log-file flag > $POSCLI_LOG_FILE > log_file > 預設
 
 [exchanges.binance]
 enabled = true
