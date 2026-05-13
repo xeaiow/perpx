@@ -10,17 +10,12 @@ import (
 	"github.com/yourname/poscli/internal/ui/styles"
 )
 
-// View 渲染 positions tab 的表格 + 狀態列。
+// View 渲染 positions tab：bubbles table + 狀態列。
 //
 // modal 由 root app 在這個 view 上面疊加；本函式不負責 modal。
 func (m Model) View() string {
 	var b strings.Builder
-
-	headers := []string{"Exchange", "Symbol", "Side", "Size", "Coin", "Entry", "Mark", "uPnL", "Lev"}
-	widths := []int{10, 14, 6, 12, 12, 12, 12, 12, 5}
-	b.WriteString(styles.Header.Render(formatRow(headers, widths)))
-	b.WriteString("\n")
-	b.WriteString(strings.Repeat("─", sumWidth(widths)))
+	b.WriteString(m.tbl.View())
 	b.WriteString("\n")
 
 	if m.loading && len(m.positions) == 0 {
@@ -28,51 +23,19 @@ func (m Model) View() string {
 		b.WriteString("\n")
 	}
 
-	unmatched := unmatchedSymbols(m.positions)
-
 	var totalPnL float64
-	for i, p := range m.positions {
-		coinText := "—"
-		if p.CoinSize > 0 {
-			coinText = trim(numfmt.F(p.CoinSize), 12)
-		}
-		row := []string{
-			p.Exchange,
-			p.Symbol,
-			string(p.Side),
-			trim(numfmt.F(p.Size), 12),
-			coinText,
-			trim(numfmt.F(p.EntryPrice), 12),
-			trim(numfmt.F(p.MarkPrice), 12),
-			numfmt.F(p.UnrealizedPnL),
-			trim(numfmt.F(p.Leverage)+"x", 5),
-		}
-		line := formatRow(row, widths)
-		// Style 優先序：cursor 反白 > unmatched 橘 > PnL 紅綠
-		switch {
-		case i == m.cursor:
-			line = "> " + line[2:]
-			line = styles.Selected.Render(line)
-		case unmatched[p.Symbol]:
-			line = styles.WarnLegRow.Render(line)
-		}
-		b.WriteString(line)
-		b.WriteString("\n")
+	for _, p := range m.positions {
 		totalPnL += p.UnrealizedPnL
 	}
 
 	// Errors area
 	if len(m.errors) > 0 {
-		b.WriteString("\n")
 		for name, err := range m.errors {
 			b.WriteString(styles.ErrorText.Render(fmt.Sprintf("✗ %s: %v", name, err)))
 			b.WriteString("\n")
 		}
 	}
 
-	// Status line
-	b.WriteString(strings.Repeat("─", sumWidth(widths)))
-	b.WriteString("\n")
 	stats := fmt.Sprintf("Total uPnL: %s USDT     %d positions across %d exchanges",
 		numfmt.F(totalPnL), len(m.positions), len(m.exs))
 	b.WriteString(styles.Pnl(totalPnL).Render(stats))
@@ -83,22 +46,6 @@ func (m Model) View() string {
 		b.WriteString("\n")
 	}
 	b.WriteString(styles.Dim.Render("[↑↓/jk] navigate  [x] close selected  [tab] switch view  [r] refresh  [q] quit"))
-	return b.String()
-}
-
-func formatRow(cols []string, widths []int) string {
-	var b strings.Builder
-	for i, c := range cols {
-		w := widths[i]
-		if len(c) > w {
-			c = c[:w]
-		}
-		b.WriteString(c)
-		if pad := w - len(c); pad > 0 {
-			b.WriteString(strings.Repeat(" ", pad))
-		}
-		b.WriteByte(' ')
-	}
 	return b.String()
 }
 
@@ -128,19 +75,3 @@ func unmatchedSymbols(ps []exchange.Position) map[string]bool {
 	}
 	return out
 }
-
-func sumWidth(widths []int) int {
-	s := 0
-	for _, w := range widths {
-		s += w + 1
-	}
-	return s
-}
-
-func trim(s string, w int) string {
-	if len(s) > w {
-		return s[:w]
-	}
-	return s
-}
-

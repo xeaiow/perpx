@@ -3,15 +3,16 @@ package positions
 import (
 	"sort"
 
+	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/yourname/poscli/internal/exchange"
+	"github.com/yourname/poscli/internal/ui/numfmt"
+	"github.com/yourname/poscli/internal/ui/styles"
 	"github.com/yourname/poscli/internal/ui/uimsg"
 )
 
 // Init 啟動時先觸發一次 fetch。
-//
-// 注意：v2 介面要求 Init 只回 Cmd，loading 旗標改由 fetch 完成前其他訊息判斷。
 func (m *Model) Init() tea.Cmd {
 	m.loading = true
 	return FetchCmd(m.exs)
@@ -19,42 +20,45 @@ func (m *Model) Init() tea.Cmd {
 
 // Update 處理鍵盤與訊息。
 //
-// 注意：close-position 流程的 modal 鍵與提交在 M6 接入；此處只負責 navigation + refresh。
+// 表格 cursor / 鍵盤交給 bubbles/table 內建 Update 處理；
+// modal 開啟時不把鍵交給 table，避免 j/k 移動游標。
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		// 預留一些行給 header + status line + error area。
+		h := msg.Height - 8
+		if h < 5 {
+			h = 5
+		}
+		m.tbl.SetHeight(h)
+		w := msg.Width - 20 // 留給未來 sidebar 用的空間
+		if w < 60 {
+			w = 60
+		}
+		m.tbl.SetWidth(w)
 	case uimsg.PositionsFetchedMsg:
 		m.loading = false
 		m.positions = sortPositions(msg.Positions)
 		m.errors = msg.Errors
 		m.lastFetch = msg.At
-		if m.cursor >= len(m.positions) {
-			m.cursor = max0(len(m.positions) - 1)
+		m.tbl.SetRows(positionsToRows(m.positions))
+		if m.tbl.Cursor() >= len(m.positions) {
+			m.tbl.SetCursor(max0(len(m.positions) - 1))
 		}
 	case tea.KeyPressMsg:
-		// modal 開啟時把鍵盤交給 app 處理（app.go 會 inspect ConfirmOpen），這裡略過。
 		if m.ConfirmOpen {
 			return m, nil
 		}
-		switch msg.String() {
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.positions)-1 {
-				m.cursor++
-			}
-		case "home", "g":
-			m.cursor = 0
-		case "end", "G":
-			m.cursor = max0(len(m.positions) - 1)
-		case "r":
+		if msg.String() == "r" {
 			m.loading = true
 			return m, FetchCmd(m.exs)
 		}
+		// 把鍵盤事件交給 bubbles table 處理（up/down/j/k/home/end/pgup/pgdn）。
+		var cmd tea.Cmd
+		m.tbl, cmd = m.tbl.Update(msg)
+		return m, cmd
 	}
 	return m, nil
 }
@@ -65,7 +69,7 @@ func (m Model) Refresh() (Model, tea.Cmd) {
 	return m, FetchCmd(m.exs)
 }
 
-// SetConfirm 把選取倉位送進 close 確認 modal（M6 使用）。
+// SetConfirm 把選取倉位送進 close 確認 modal。
 func (m *Model) SetConfirm(open bool) {
 	if !open {
 		m.ConfirmOpen = false
@@ -78,6 +82,39 @@ func (m *Model) SetConfirm(open bool) {
 	}
 	m.ConfirmOpen = true
 	m.ConfirmTarget = p
+}
+
+// positionsToRows 把每個 Position 轉成 table.Row（[]string）。
+// 對 unmatched 倉位，把每個 cell 字串都用 lipgloss 橘色 wrap，
+// 這樣 bubbles table 渲染時 ANSI 已嵌入、整列顯示橘色。
+// （cursor 反白由 table 自己處理；ANSI 與反白疊合終端會自動處理。）
+func positionsToRows(ps []exchange.Position) []table.Row {
+	unmatched := unmatchedSymbols(ps)
+	out := make([]table.Row, 0, len(ps))
+	for _, p := range ps {
+		coinText := "—"
+		if p.CoinSize > 0 {
+			coinText = numfmt.F(p.CoinSize)
+		}
+		cells := []string{
+			p.Exchange,
+			p.Symbol,
+			string(p.Side),
+			numfmt.F(p.Size),
+			coinText,
+			numfmt.F(p.EntryPrice),
+			numfmt.F(p.MarkPrice),
+			numfmt.F(p.UnrealizedPnL),
+			numfmt.F(p.Leverage) + "x",
+		}
+		if unmatched[p.Symbol] {
+			for i, c := range cells {
+				cells[i] = styles.WarnLegRow.Render(c)
+			}
+		}
+		out = append(out, table.Row(cells))
+	}
+	return out
 }
 
 func sortPositions(in []exchange.Position) []exchange.Position {

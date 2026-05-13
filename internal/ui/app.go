@@ -7,12 +7,15 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
+	"github.com/yourname/poscli/internal/closelog"
 	"github.com/yourname/poscli/internal/exchange"
 	"github.com/yourname/poscli/internal/ui/accounts"
 	"github.com/yourname/poscli/internal/ui/confirm"
 	"github.com/yourname/poscli/internal/ui/history"
 	"github.com/yourname/poscli/internal/ui/positions"
+	"github.com/yourname/poscli/internal/ui/sidebar"
 	"github.com/yourname/poscli/internal/ui/styles"
 )
 
@@ -29,6 +32,7 @@ type App struct {
 	positions positions.Model
 	history   history.Model
 	accounts  accounts.Model
+	sidebar   sidebar.Model
 
 	exs map[string]exchange.Exchange
 
@@ -39,6 +43,8 @@ type App struct {
 
 	toast      string
 	toastError bool
+
+	width, height int
 }
 
 // NewFromMap 用 string-keyed map 建立 App。
@@ -48,6 +54,7 @@ func NewFromMap(exs map[string]exchange.Exchange) *App {
 		positions: positions.New(exs),
 		history:   history.New(exs),
 		accounts:  accounts.New(exs),
+		sidebar:   sidebar.New([]string{"Positions", "History", "Accounts"}, 20),
 	}
 }
 
@@ -58,11 +65,35 @@ func (a *App) Init() tea.Cmd {
 
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		a.width = msg.Width
+		a.height = msg.Height
+		a.sidebar.SetSize(sidebar.Width, msg.Height-2)
+	case tea.MouseWheelMsg:
+		// 滑鼠滾輪 sidebar 切換
+		switch msg.Button {
+		case tea.MouseWheelUp:
+			if a.tab > 0 {
+				a.tab--
+				a.sidebar.Select(a.tab)
+				return a, a.lazyInit()
+			}
+		case tea.MouseWheelDown:
+			if a.tab < 2 {
+				a.tab++
+				a.sidebar.Select(a.tab)
+				return a, a.lazyInit()
+			}
+		}
+		return a, nil
 	case tea.KeyPressMsg:
 		// 全域 quit / help
 		switch msg.String() {
 		case "q", "ctrl+c":
 			if a.positions.ConfirmOpen && !a.positions.ConfirmInFlight {
+				if t := a.positions.ConfirmTarget; t != nil {
+					closelog.Cancelled(logFields(*t))
+				}
 				a.positions.SetConfirm(false)
 				return a, nil
 			}
@@ -72,18 +103,23 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, nil
 		case "tab":
 			a.tab = (a.tab + 1) % 3
+			a.sidebar.Select(a.tab)
 			return a, a.lazyInit()
 		case "shift+tab":
 			a.tab = (a.tab + 2) % 3
+			a.sidebar.Select(a.tab)
 			return a, a.lazyInit()
 		case "1":
 			a.tab = TabPositions
+			a.sidebar.Select(a.tab)
 			return a, nil
 		case "2":
 			a.tab = TabHistory
+			a.sidebar.Select(a.tab)
 			return a, a.lazyInit()
 		case "3":
 			a.tab = TabAccounts
+			a.sidebar.Select(a.tab)
 			return a, a.lazyInit()
 		}
 
@@ -103,6 +139,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "n", "esc":
 				if a.positions.ConfirmInFlight {
 					return a, nil
+				}
+				if t := a.positions.ConfirmTarget; t != nil {
+					closelog.Cancelled(logFields(*t))
 				}
 				a.positions.SetConfirm(false)
 				return a, nil
@@ -149,34 +188,34 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a *App) View() tea.View {
-	var b strings.Builder
-	b.WriteString(renderTabs(a.tab))
-	b.WriteString("\n")
+	var mainB strings.Builder
 	switch a.tab {
 	case TabPositions:
-		b.WriteString(a.positions.View())
+		mainB.WriteString(a.positions.View())
 	case TabHistory:
-		b.WriteString(a.history.View())
+		mainB.WriteString(a.history.View())
 	case TabAccounts:
-		b.WriteString(a.accounts.View())
+		mainB.WriteString(a.accounts.View())
 	}
 	if a.toast != "" {
-		b.WriteString("\n")
+		mainB.WriteString("\n")
 		if a.toastError {
-			b.WriteString(styles.ErrorText.Render(a.toast))
+			mainB.WriteString(styles.ErrorText.Render(a.toast))
 		} else {
-			b.WriteString(styles.OKText.Render(a.toast))
+			mainB.WriteString(styles.OKText.Render(a.toast))
 		}
 	}
 	if a.showHelp {
-		b.WriteString("\n")
-		b.WriteString(renderHelp())
+		mainB.WriteString("\n")
+		mainB.WriteString(renderHelp())
 	}
 	if a.tab == TabPositions && a.positions.ConfirmOpen && a.positions.ConfirmTarget != nil {
-		b.WriteString("\n\n")
-		b.WriteString(confirm.Render(*a.positions.ConfirmTarget, a.positions.ConfirmInFlight))
+		mainB.WriteString("\n\n")
+		mainB.WriteString(confirm.Render(*a.positions.ConfirmTarget, a.positions.ConfirmInFlight))
 	}
-	v := tea.NewView(b.String())
+
+	body := lipgloss.JoinHorizontal(lipgloss.Top, a.sidebar.View(), mainB.String())
+	v := tea.NewView(body)
 	v.AltScreen = true
 	return v
 }
@@ -196,20 +235,6 @@ func (a *App) lazyInit() tea.Cmd {
 		}
 	}
 	return nil
-}
-
-func renderTabs(active int) string {
-	names := []string{"Positions", "History", "Accounts"}
-	var b strings.Builder
-	b.WriteString(styles.Header.Render("poscli "))
-	for i, n := range names {
-		if i == active {
-			b.WriteString(styles.TabActive.Render("[ " + n + " ]"))
-		} else {
-			b.WriteString(styles.TabInactive.Render(n))
-		}
-	}
-	return b.String()
 }
 
 func renderHelp() string {
@@ -236,12 +261,18 @@ func renderHelp() string {
 
 func closeCmd(exs map[string]exchange.Exchange, p exchange.Position) tea.Cmd {
 	return func() tea.Msg {
+		fields := logFields(p)
+		closelog.Requested(fields)
+
 		ex, ok := exs[p.Exchange]
 		if !ok {
-			return CloseResultMsg{Exchange: p.Exchange, Symbol: p.Symbol, Err: fmt.Errorf("unknown exchange %q", p.Exchange)}
+			err := fmt.Errorf("unknown exchange %q", p.Exchange)
+			closelog.Failed(fields, err, 0)
+			return CloseResultMsg{Exchange: p.Exchange, Symbol: p.Symbol, Err: err}
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+		start := time.Now()
 		res, err := ex.ClosePosition(ctx, exchange.CloseRequest{
 			Symbol:     p.RawSymbol,
 			Side:       p.Side,
@@ -249,7 +280,28 @@ func closeCmd(exs map[string]exchange.Exchange, p exchange.Position) tea.Cmd {
 			Size:       p.Size,
 			MarginMode: p.MarginMode,
 		})
+		latency := time.Since(start)
+		if err != nil {
+			closelog.Failed(fields, err, latency)
+		} else {
+			closelog.Completed(fields, res.OrderID, latency)
+		}
 		return CloseResultMsg{Exchange: p.Exchange, Symbol: p.Symbol, Result: res, Err: err}
+	}
+}
+
+func logFields(p exchange.Position) closelog.Fields {
+	return closelog.Fields{
+		Exchange:   p.Exchange,
+		Symbol:     p.Symbol,
+		RawSymbol:  p.RawSymbol,
+		Side:       string(p.Side),
+		Size:       p.Size,
+		CoinSize:   p.CoinSize,
+		EntryPrice: p.EntryPrice,
+		MarkPrice:  p.MarkPrice,
+		UPnL:       p.UnrealizedPnL,
+		MarginMode: p.MarginMode,
 	}
 }
 

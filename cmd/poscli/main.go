@@ -16,6 +16,7 @@ import (
 
 	"github.com/yourname/poscli/internal/config"
 	"github.com/yourname/poscli/internal/exchange"
+	"github.com/yourname/poscli/internal/closelog"
 	"github.com/yourname/poscli/internal/ui"
 
 	// 啟用 adapter 註冊
@@ -312,6 +313,9 @@ func newRunCmd() *cobra.Command {
 			for name, ex := range reg {
 				exs[string(name)] = ex
 			}
+
+			closelog.Init()
+			defer closelog.Sync()
 
 			prog := tea.NewProgram(ui.NewFromMap(exs))
 			_, err = prog.Run()
