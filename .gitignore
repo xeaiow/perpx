@@ -37,3 +37,6 @@ __MACOSX/
 
 # Built binaries
 /poscli
+
+# Real config (contains encrypted credentials; only config.toml.example is tracked)
+/config.toml
