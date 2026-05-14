@@ -27,11 +27,18 @@ type rawAccount struct {
 }
 
 type rawHistoryItem struct {
-	Time     int64   `json:"time"`
-	Pnl      string  `json:"pnl"`
-	Side     string  `json:"side"`
-	Contract string  `json:"contract"`
-	Text     string  `json:"text"`
+	Time          int64  `json:"time"`
+	Pnl           string `json:"pnl"`
+	Side          string `json:"side"`
+	Contract      string `json:"contract"`
+	Text          string `json:"text"`
+	// /position_close 額外欄位（依 Gate v4 swagger）。string 形式回傳。
+	// LongPrice 在 side=long 紀錄裡是 entry 均價、ShortPrice 是 exit；side=short 反過來。
+	LongPrice     string `json:"long_price"`
+	ShortPrice    string `json:"short_price"`
+	AccumSize     string `json:"accum_size"`
+	MaxSize       string `json:"max_size"`
+	FirstOpenTime int64  `json:"first_open_time"`
 }
 
 type rawOrderResp struct {
